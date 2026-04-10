@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Barber $">
+  <meta name="theme-color" content="#0a0a0a">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <title>Barber Tracker</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --surface: #141414;
+      --surface2: #1c1c1c;
+      --border: rgba(255,255,255,0.07);
+      --border2: rgba(255,255,255,0.12);
+      --gold: #C9A84C;
+      --gold-dim: rgba(201,168,76,0.12);
+      --gold-dim2: rgba(201,168,76,0.2);
+      --red: #e05252;
+      --red-dim: rgba(224,82,82,0.12);
+      --text: #f0ede8;
+      --text2: rgba(240,237,232,0.5);
+      --text3: rgba(240,237,232,0.28);
+      --green: #5aad7a;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; overflow: hidden; }
+
+    /* Layout */
+    #app { display: flex; flex-direction: column; height: 100%; padding-top: var(--safe-top); }
+    #header { padding: 20px 20px 0; flex-shrink: 0; }
+    #header h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; color: var(--gold); }
+    #header .sub { font-size: 12px; color: var(--text3); font-family: 'DM Mono', monospace; margin-top: 2px; }
+
+    /* Metrics bar */
+    #metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 16px 20px 0; flex-shrink: 0; }
+    .metric { background: var(--surface); border: 0.5px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+    .metric-label { font-size: 11px; color: var(--text3); font-family: 'DM Mono', monospace; text-transform: uppercase; letter-spacing: 0.06em; }
+    .metric-value { font-size: 20px; font-weight: 700; color: var(--text); margin-top: 3px; letter-spacing: -0.02em; }
+    .metric-fee { font-size: 11px; color: var(--red); margin-top: 3px; font-family: 'DM Mono', monospace; }
+
+    /* Tab nav */
+    #tabs { display: flex; gap: 4px; padding: 14px 20px 0; flex-shrink: 0; }
+    .tab { flex: 1; background: var(--surface); border: 0.5px solid var(--border); border-radius: 8px; padding: 8px 6px; font-size: 12px; font-weight: 600; color: var(--text2); cursor: pointer; text-align: center; font-family: 'Syne', sans-serif; transition: all 0.15s; }
+    .tab.active { background: var(--gold); color: var(--bg); border-color: var(--gold); }
+
+    /* Scrollable content */
+    #content { flex: 1; overflow-y: auto; padding: 14px 20px; padding-bottom: calc(20px + var(--safe-bottom)); -webkit-overflow-scrolling: touch; }
+
+    /* View */
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* Section label */
+    .sec { font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; font-family: 'DM Mono', monospace; margin-bottom: 8px; margin-top: 16px; }
+    .sec:first-child { margin-top: 0; }
+
+    /* Card */
+    .card { background: var(--surface); border: 0.5px solid var(--border); border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; }
+
+    /* Fee settings */
+    .fee-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .fee-row label { font-size: 12px; color: var(--text2); font-family: 'DM Mono', monospace; }
+    .fee-row input { background: var(--surface2); border: 0.5px solid var(--border2); border-radius: 6px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 13px; padding: 5px 8px; width: 70px; -webkit-appearance: none; }
+    .fee-badge { background: var(--gold-dim); color: var(--gold); border-radius: 6px; padding: 3px 10px; font-size: 11px; font-family: 'DM Mono', monospace; font-weight: 500; margin-left: auto; }
+
+    /* Date input */
+    input[type="date"] { background: var(--surface2); border: 0.5px solid var(--border2); border-radius: 8px; color: var(--text); font-family: 'Syne', sans-serif; font-size: 14px; padding: 9px 12px; width: 100%; -webkit-appearance: none; }
+    input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.6); }
+
+    /* Method grid */
+    .method-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .method-cell { background: var(--surface2); border: 0.5px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+    .method-cell.is-square { border-color: var(--gold-dim2); }
+    .method-name { font-size: 11px; color: var(--text3); font-family: 'DM Mono', monospace; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 5px; }
+    .method-cell.is-square .method-name { color: var(--gold); opacity: 0.7; }
+    .method-cell input { background: none; border: none; color: var(--text); font-size: 17px; font-weight: 600; font-family: 'DM Mono', monospace; width: 100%; outline: none; padding: 0; letter-spacing: -0.02em; }
+    .method-cell input::placeholder { color: var(--text3); }
+    .sq-preview { font-size: 10px; color: var(--red); font-family: 'DM Mono', monospace; margin-top: 5px; min-height: 14px; line-height: 1.3; }
+
+    /* Buttons */
+    .btn { width: 100%; padding: 13px; border-radius: 10px; font-size: 14px; font-weight: 700; font-family: 'Syne', sans-serif; cursor: pointer; border: none; letter-spacing: 0.01em; transition: opacity 0.15s, transform 0.1s; }
+    .btn:active { transform: scale(0.98); }
+    .btn-gold { background: var(--gold); color: var(--bg); }
+    .btn-ghost { background: var(--surface2); color: var(--text2); margin-top: 8px; }
+    .btn-export { background: var(--surface); border: 0.5px solid var(--border2); color: var(--text2); font-size: 13px; margin-top: 4px; }
+
+    /* Entry list */
+    .entry { display: flex; justify-content: space-between; align-items: flex-start; padding: 12px 0; border-bottom: 0.5px solid var(--border); }
+    .entry:last-child { border-bottom: none; }
+    .entry-left { flex: 1; }
+    .entry-gross { font-size: 17px; font-weight: 700; color: var(--text); letter-spacing: -0.02em; font-family: 'DM Mono', monospace; }
+    .entry-date { font-size: 11px; color: var(--text3); font-family: 'DM Mono', monospace; margin-top: 2px; }
+    .entry-pills { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+    .pill { font-size: 10px; font-family: 'DM Mono', monospace; padding: 2px 7px; border-radius: 99px; }
+    .pill-cash     { background: rgba(90,173,122,0.15); color: var(--green); }
+    .pill-venmo    { background: rgba(58,128,235,0.15); color: #5b9ef5; }
+    .pill-applepay { background: rgba(240,237,232,0.08); color: var(--text2); }
+    .pill-cashapp  { background: rgba(90,173,122,0.15); color: var(--green); }
+    .pill-square   { background: var(--gold-dim); color: var(--gold); }
+    .pill-zelle    { background: rgba(160,100,240,0.15); color: #b57cf5; }
+    .entry-fee { font-size: 10px; color: var(--red); font-family: 'DM Mono', monospace; margin-top: 4px; }
+    .del-btn { background: none; border: none; color: var(--text3); font-size: 20px; cursor: pointer; padding: 0 4px; line-height: 1; flex-shrink: 0; margin-left: 10px; }
+    .del-btn:active { color: var(--red); }
+    .empty { text-align: center; color: var(--text3); font-size: 13px; padding: 28px 0; font-family: 'DM Mono', monospace; }
+
+    /* Period tabs */
+    .period-tabs { display: flex; gap: 4px; margin-bottom: 12px; }
+    .ptab { flex: 1; background: var(--surface2); border: 0.5px solid var(--border); border-radius: 7px; padding: 7px 4px; font-size: 11px; font-weight: 600; color: var(--text2); cursor: pointer; text-align: center; font-family: 'Syne', sans-serif; transition: all 0.15s; }
+    .ptab.active { background: var(--surface); border-color: var(--gold); color: var(--gold); }
+
+    /* Summary period block */
+    .period-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; }
+    .period-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+    .period-range { font-size: 12px; color: var(--text2); font-family: 'DM Mono', monospace; }
+    .period-gross { font-size: 20px; font-weight: 700; color: var(--text); letter-spacing: -0.02em; font-family: 'DM Mono', monospace; }
+    .period-fee-note { font-size: 11px; color: var(--red); font-family: 'DM Mono', monospace; }
+    .method-breakdown { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .mb-cell { background: var(--surface2); border-radius: 8px; padding: 8px; }
+    .mb-name { font-size: 10px; color: var(--text3); font-family: 'DM Mono', monospace; margin-bottom: 3px; }
+    .mb-amt { font-size: 13px; font-weight: 600; font-family: 'DM Mono', monospace; color: var(--text); }
+    .mb-fee { font-size: 10px; color: var(--red); font-family: 'DM Mono', monospace; margin-top: 2px; }
+    .period-meta { font-size: 11px; color: var(--text3); font-family: 'DM Mono', monospace; margin-top: 10px; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <h1>Barber Tracker</h1>
+    <div class="sub" id="today-date"></div>
+  </div>
+
+  <div id="metrics"></div>
+
+  <div id="tabs">
+    <div class="tab active" onclick="setView('log')">Log Day</div>
+    <div class="tab" onclick="setView('weekly')">Weekly</div>
+    <div class="tab" onclick="setView('monthly')">Monthly</div>
+  </div>
+
+  <div id="content">
+
+    <!-- LOG VIEW -->
+    <div id="view-log" class="view active">
+
+      <div class="sec">Square fee</div>
+      <div class="card">
+        <div class="fee-row">
+          <label>Rate</label>
+          <input type="number" id="sq-pct" value="2.6" min="0" max="10" step="0.1" oninput="updateFees()">
+          <label>%  +  $</label>
+          <input type="number" id="sq-flat" value="0.15" min="0" step="0.01" oninput="updateFees()" style="width:60px">
+          <span class="fee-badge" id="fee-badge">2.6% + $0.15</span>
+        </div>
+      </div>
+
+      <div class="sec">Date</div>
+      <div class="card" style="padding:10px 12px">
+        <input type="date" id="entry-date">
+      </div>
+
+      <div class="sec">Amounts by method</div>
+      <div class="method-grid" id="method-inputs"></div>
+
+      <div style="margin-top:14px">
+        <button class="btn btn-gold" onclick="saveDay()">Save Day</button>
+        <button class="btn btn-ghost" onclick="clearForm()">Clear</button>
+      </div>
+
+      <div class="sec" style="margin-top:20px">Recent</div>
+      <div class="card" style="padding:0 16px">
+        <div id="recent-list"></div>
+      </div>
+      <button class="btn btn-export" onclick="exportCSV()">Export CSV for taxes ↓</button>
+    </div>
+
+    <!-- WEEKLY VIEW -->
+    <div id="view-weekly" class="view">
+      <div class="period-tabs" id="weekly-ptabs">
+        <div class="ptab active" onclick="setWeekPage(0)">This week</div>
+        <div class="ptab" onclick="setWeekPage(1)">Last week</div>
+        <div class="ptab" onclick="setWeekPage(2)">2 wks ago</div>
+        <div class="ptab" onclick="setWeekPage(3)">3 wks ago</div>
+      </div>
+      <div id="weekly-content"></div>
+      <button class="btn btn-export" onclick="exportCSV()">Export CSV for taxes ↓</button>
+    </div>
+
+    <!-- MONTHLY VIEW -->
+    <div id="view-monthly" class="view">
+      <div id="monthly-content"></div>
+      <button class="btn btn-export" onclick="exportCSV()">Export CSV for taxes ↓</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const METHODS = ['Cash','Venmo','Apple Pay','Cash App','Square','Zelle'];
+const PILL_CLASS = { 'Cash':'pill-cash','Venmo':'pill-venmo','Apple Pay':'pill-applepay','Cash App':'pill-cashapp','Square':'pill-square','Zelle':'pill-zelle' };
+
+let entries = JSON.parse(localStorage.getItem('barber_v4') || '[]');
+let sqPct = parseFloat(localStorage.getItem('sq_pct') || '2.6');
+let sqFlat = parseFloat(localStorage.getItem('sq_flat') || '0.15');
+let weekPage = 0;
+
+// Set today's date label
+const now = new Date();
+document.getElementById('today-date').textContent = now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+
+function fmt(n){ return '$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function today(){ return new Date().toISOString().slice(0,10); }
+function sqFee(g){ return g > 0 ? parseFloat(((g * sqPct/100) + sqFlat).toFixed(2)) : 0; }
+function save(){ localStorage.setItem('barber_v4', JSON.stringify(entries)); }
+function saveFees(){ localStorage.setItem('sq_pct',sqPct); localStorage.setItem('sq_flat',sqFlat); }
+
+// Build method inputs
+const mg = document.getElementById('method-inputs');
+METHODS.forEach(m => {
+  const isSquare = m === 'Square';
+  const id = 'm-'+m.replace(/\s/g,'-');
+  const cell = document.createElement('div');
+  cell.className = 'method-cell' + (isSquare ? ' is-square' : '');
+  cell.innerHTML = `<div class="method-name">${m}</div>
+    <input type="number" id="${id}" min="0" step="0.01" placeholder="0.00" inputmode="decimal" ${isSquare ? 'oninput="previewSq()"' : ''}>
+    ${isSquare ? '<div class="sq-preview" id="sq-preview"></div>' : ''}`;
+  mg.appendChild(cell);
+});
+
+document.getElementById('entry-date').value = today();
+document.getElementById('sq-pct').value = sqPct;
+document.getElementById('sq-flat').value = sqFlat.toFixed(2);
+
+function updateFees(){
+  sqPct = parseFloat(document.getElementById('sq-pct').value)||0;
+  sqFlat = parseFloat(document.getElementById('sq-flat').value)||0;
+  saveFees();
+  document.getElementById('fee-badge').textContent = sqPct+'% + $'+sqFlat.toFixed(2);
+  previewSq();
+}
+
+function previewSq(){
+  const v = parseFloat(document.getElementById('m-Square').value)||0;
+  const el = document.getElementById('sq-preview');
+  if(v > 0){
+    const fee = sqFee(v);
+    el.textContent = 'fee '+fmt(fee)+' → net '+fmt(v-fee);
+  } else { el.textContent = ''; }
+}
+
+function clearForm(){
+  METHODS.forEach(m => { document.getElementById('m-'+m.replace(/\s/g,'-')).value=''; });
+  document.getElementById('sq-preview').textContent='';
+}
+
+function saveDay(){
+  const date = document.getElementById('entry-date').value;
+  if(!date){ alert('Pick a date'); return; }
+  const totals = {};
+  METHODS.forEach(m => { totals[m] = parseFloat(document.getElementById('m-'+m.replace(/\s/g,'-')).value)||0; });
+  const gross = Object.values(totals).reduce((a,b)=>a+b,0);
+  if(gross<=0){ alert('Enter at least one amount'); return; }
+  const sqG = totals['Square']||0;
+  const fee = sqFee(sqG);
+  entries = entries.filter(e=>e.date!==date);
+  entries.unshift({date,totals,gross,sqFee:fee,sqNet:sqG-fee});
+  entries.sort((a,b)=>b.date.localeCompare(a.date));
+  save(); clearForm(); renderAll();
+}
+
+function deleteEntry(date){
+  entries = entries.filter(e=>e.date!==date);
+  save(); renderAll();
+}
+
+function pillsHtml(totals){
+  return METHODS.filter(m=>totals[m]>0).map(m=>`<span class="pill ${PILL_CLASS[m]}">${m} ${fmt(totals[m])}</span>`).join('');
+}
+
+function renderMetrics(){
+  const d = new Date(); const day = d.getDay();
+  const sun = new Date(d); sun.setDate(d.getDate()-day);
+  const wkStart = sun.toISOString().slice(0,10);
+  const sat = new Date(sun); sat.setDate(sun.getDate()+6);
+  const wkEnd = sat.toISOString().slice(0,10);
+  const mo = today().slice(0,7);
+  const wkE = entries.filter(e=>e.date>=wkStart&&e.date<=wkEnd);
+  const moE = entries.filter(e=>e.date.startsWith(mo));
+  const wkG = wkE.reduce((s,e)=>s+e.gross,0);
+  const moG = moE.reduce((s,e)=>s+e.gross,0);
+  const wkF = wkE.reduce((s,e)=>s+(e.sqFee||0),0);
+  const moF = moE.reduce((s,e)=>s+(e.sqFee||0),0);
+  document.getElementById('metrics').innerHTML = `
+    <div class="metric"><div class="metric-label">This week</div><div class="metric-value">${fmt(wkG)}</div>${wkF>0?`<div class="metric-fee">-${fmt(wkF)} sq fees</div>`:''}</div>
+    <div class="metric"><div class="metric-label">This month</div><div class="metric-value">${fmt(moG)}</div>${moF>0?`<div class="metric-fee">-${fmt(moF)} sq fees</div>`:''}</div>
+  `;
+}
+
+function renderRecent(){
+  const el = document.getElementById('recent-list');
+  const show = entries.slice(0,10);
+  if(!show.length){ el.innerHTML='<div class="empty">no entries yet</div>'; return; }
+  el.innerHTML = show.map(e=>`
+    <div class="entry">
+      <div class="entry-left">
+        <div class="entry-gross">${fmt(e.gross)}</div>
+        <div class="entry-date">${e.date}</div>
+        <div class="entry-pills">${pillsHtml(e.totals)}</div>
+        ${e.sqFee>0?`<div class="entry-fee">sq fee ${fmt(e.sqFee)} → net ${fmt(e.sqNet)}</div>`:''}
+      </div>
+      <button class="del-btn" onclick="deleteEntry('${e.date}')">×</button>
+    </div>`).join('');
+}
+
+function weekBounds(offset){
+  const d = new Date();
+  d.setDate(d.getDate() - d.getDay() - offset*7);
+  const sun = new Date(d); sun.setDate(d.getDate() - d.getDay() + (offset===0?0:0));
+  // recalc clean
+  const ref = new Date();
+  ref.setDate(ref.getDate() - ref.getDay() - offset*7);
+  const s = new Date(ref); s.setDate(ref.getDate() - ref.getDay());
+  const e = new Date(s); e.setDate(s.getDate()+6);
+  return [s.toISOString().slice(0,10), e.toISOString().slice(0,10)];
+}
+
+function setWeekPage(n){
+  weekPage = n;
+  document.querySelectorAll('#weekly-ptabs .ptab').forEach((t,i)=>t.classList.toggle('active',i===n));
+  renderWeekly();
+}
+
+function renderWeekly(){
+  const [start,end] = weekBounds(weekPage);
+  const wkE = entries.filter(e=>e.date>=start&&e.date<=end);
+  const gross = wkE.reduce((s,e)=>s+e.gross,0);
+  const fees = wkE.reduce((s,e)=>s+(e.sqFee||0),0);
+  const totals = {};
+  METHODS.forEach(m=>totals[m]=0);
+  wkE.forEach(e=>METHODS.forEach(m=>{ totals[m]+=(e.totals[m]||0); }));
+  const el = document.getElementById('weekly-content');
+  if(!wkE.length){ el.innerHTML='<div class="empty">no entries for this week</div>'; return; }
+  const breakdown = METHODS.map(m=>`
+    <div class="mb-cell">
+      <div class="mb-name">${m}</div>
+      <div class="mb-amt">${fmt(totals[m])}</div>
+      ${m==='Square'&&fees>0?`<div class="mb-fee">fee ${fmt(fees)}</div>`:''}
+    </div>`).join('');
+  el.innerHTML = `
+    <div class="period-card">
+      <div class="period-header">
+        <div><div class="period-range">${start} – ${end}</div>${fees>0?`<div class="period-fee-note">-${fmt(fees)} sq fees → net ${fmt(gross-fees)}</div>`:''}
+        </div>
+        <div style="text-align:right"><div class="period-gross">${fmt(gross)}</div></div>
+      </div>
+      <div class="method-breakdown">${breakdown}</div>
+      <div class="period-meta">${wkE.length} day${wkE.length!==1?'s':''} worked</div>
+    </div>
+    <div class="sec">Day by day</div>
+    <div class="card" style="padding:0 16px">
+      ${wkE.map(e=>`
+        <div class="entry">
+          <div class="entry-left">
+            <div class="entry-gross">${fmt(e.gross)}</div>
+            <div class="entry-date">${e.date}</div>
+            <div class="entry-pills">${pillsHtml(e.totals)}</div>
+            ${e.sqFee>0?`<div class="entry-fee">sq fee ${fmt(e.sqFee)} → net ${fmt(e.sqNet)}</div>`:''}
+          </div>
+        </div>`).join('')}
+    </div>`;
+}
+
+function renderMonthly(){
+  const months = {};
+  entries.forEach(e=>{
+    const k = e.date.slice(0,7);
+    if(!months[k]) months[k]={totals:{},gross:0,sqFee:0,days:0};
+    METHODS.forEach(m=>{ months[k].totals[m]=(months[k].totals[m]||0)+(e.totals[m]||0); });
+    months[k].gross+=e.gross; months[k].sqFee+=(e.sqFee||0); months[k].days++;
+  });
+  const keys = Object.keys(months).sort().reverse();
+  const el = document.getElementById('monthly-content');
+  if(!keys.length){ el.innerHTML='<div class="empty">no entries yet</div>'; return; }
+  el.innerHTML = keys.map(k=>{
+    const mo = months[k];
+    const label = new Date(k+'-15').toLocaleString('en-US',{month:'long',year:'numeric'});
+    const breakdown = METHODS.map(m=>`
+      <div class="mb-cell">
+        <div class="mb-name">${m}</div>
+        <div class="mb-amt">${fmt(mo.totals[m]||0)}</div>
+        ${m==='Square'&&mo.sqFee>0?`<div class="mb-fee">fee ${fmt(mo.sqFee)}</div>`:''}
+      </div>`).join('');
+    return `<div class="period-card">
+      <div class="period-header">
+        <div><div class="period-range">${label}</div>${mo.sqFee>0?`<div class="period-fee-note">-${fmt(mo.sqFee)} sq fees → net ${fmt(mo.gross-mo.sqFee)}</div>`:''}</div>
+        <div style="text-align:right"><div class="period-gross">${fmt(mo.gross)}</div></div>
+      </div>
+      <div class="method-breakdown">${breakdown}</div>
+      <div class="period-meta">${mo.days} day${mo.days!==1?'s':''} worked</div>
+    </div>`;
+  }).join('');
+}
+
+function renderAll(){ renderMetrics(); renderRecent(); renderWeekly(); renderMonthly(); }
+
+function setView(v){
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['log','weekly','monthly'][i]===v));
+  document.getElementById('view-'+v).classList.add('active');
+}
+
+function exportCSV(){
+  const rows = [['Date','Gross','Cash','Venmo','Apple Pay','Cash App','Square Gross','Square Fee','Square Net','Zelle']];
+  entries.forEach(e=>{
+    const t = e.totals;
+    rows.push([e.date,e.gross.toFixed(2),(t.Cash||0).toFixed(2),(t.Venmo||0).toFixed(2),
+      (t['Apple Pay']||0).toFixed(2),(t['Cash App']||0).toFixed(2),
+      (t.Square||0).toFixed(2),(e.sqFee||0).toFixed(2),(e.sqNet||0).toFixed(2),(t.Zelle||0).toFixed(2)]);
+  });
+  const csv = rows.map(r=>r.map(c=>`"${c}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download = 'barber-income-'+today()+'.csv'; a.click();
+}
+
+// Register service worker
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
+
+renderAll();
+</script>
+</body>
+</html>
